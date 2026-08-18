@@ -8,23 +8,17 @@ ENV ASPNETCORE_URLS=http://+:8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Match exact casing of your folders and .csproj files
-COPY ["Api/Api.csproj", "Api/"]
-COPY ["Services/Services.csproj", "Services/"]
-COPY ["Data/Data.csproj", "Data/"]
-COPY ["Common/Common.csproj", "Common/"]
+# Copy everything at once so BuildKit doesn't have to resolve individual subpath checksums
+COPY . .
 
-# Restore dependencies
+# Restore directly targeting the main API project
 RUN dotnet restore "Api/Api.csproj"
 
-# Copy the rest of the source code
-COPY . .
+# Build
 WORKDIR "/src/Api"
-
-# Build the project
 RUN dotnet build "Api.csproj" -c Release -o /app/build
 
-# Stage 3: Publish the Application
+# Stage 3: Publish Application
 FROM build AS publish
 RUN dotnet publish "Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
