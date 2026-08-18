@@ -1,10 +1,20 @@
+using HeadlessCMS.Data;
+
+DotNetEnv.Env.Load();
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddDataServices(builder.Configuration, builder.Environment);
+
+
 var app = builder.Build();
+
+// Triggers the Redis ping and EF Core migration check inside DependencyInjection.cs
+await app.Services.InitDataServicesAsync();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
