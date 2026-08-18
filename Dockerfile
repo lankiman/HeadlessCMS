@@ -8,13 +8,25 @@ ENV ASPNETCORE_URLS=http://+:8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy everything at once so BuildKit doesn't have to resolve individual subpath checksums
+# --- 1. VIEW BEFORE COPYING CODE ---
+RUN echo "\n==================== BEFORE COPY ====================" && \
+    ls -la /src && \
+    echo "=====================================================\n"
+
+# --- 2. COPY THE REPOSITORY CONTENT ---
 COPY . .
 
-# Restore directly targeting the main API project
+# --- 3. VIEW AFTER COPYING CODE ---
+RUN echo "\n==================== AFTER COPY =====================" && \
+    echo "--- Top Level Files ---" && ls -la /src && \
+    echo "\n--- All .csproj Files Found ---" && find . -name "*.csproj" && \
+    echo "=====================================================\n"
+
+# --- 4. RESTORE DEPENDENCIES ---
+# Note: Update "Api/Api.csproj" if the output from step 3 shows a different casing or subfolder path!
 RUN dotnet restore "Api/Api.csproj"
 
-# Build
+# Build the project
 WORKDIR "/src/Api"
 RUN dotnet build "Api.csproj" -c Release -o /app/build
 
@@ -27,4 +39,5 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Start application
 ENTRYPOINT ["dotnet", "Api.dll"]
