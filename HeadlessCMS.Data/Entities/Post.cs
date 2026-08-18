@@ -15,6 +15,10 @@ public class Post : BaseEntity
     
     public string Content { get; set; }
     
+    public string CategoryId { get; set; }
+    
+    public Category Category { get; set; }
+    
     public Guid AuthorId { get; set; }
     public User Author { get; set; }
     
@@ -30,4 +34,7 @@ public class Post : BaseEntity
     
     public DateTime? SubmittedAt { get; set; }
     public DateTime? PublishedAt { get; set; }
+    
+    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    public ICollection<Tag> Tags { get; set; } = new List<Tag>();
 }
