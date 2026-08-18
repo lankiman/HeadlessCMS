@@ -41,6 +41,7 @@ app.MapOpenApi();
 app.UseSwaggerUI(options => {
     options.SwaggerEndpoint("/openapi/v1.json", "HeadlessCMS API");
     options.RoutePrefix = "documentation";
+    options.ConfigObject.AdditionalItems["schemes"] = new[] { "https" };
 });
 
 var summaries = new[]
