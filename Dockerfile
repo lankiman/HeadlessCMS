@@ -1,12 +1,11 @@
 # Stage 1: Base Runtime Image
-FROM ://microsoft.com AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
-# Railway automatically assigns a PORT variable; .NET 8 listens on 8080 by default
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
 # Stage 2: SDK Image for Building
-FROM ://microsoft.com AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy all project files first to leverage Docker caching for NuGet packages
@@ -36,4 +35,3 @@ COPY --from=publish /app/publish .
 
 # Tell Railway how to start your application
 ENTRYPOINT ["dotnet", "api.dll"]
-
