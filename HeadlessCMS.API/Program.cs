@@ -22,10 +22,10 @@ builder.Services.AddCors(options =>
 
 
 var app = builder.Build();
-
+app.UseForwardedHeaders(); 
 app.UseCors("AllowAll");
 
-// Triggers the Redis ping and EF Core migration check inside DependencyInjection.cs
+// Triggers the Redis ping and EF Core migration check inside Configuration.cs
 await app.Services.InitDataServicesAsync();
 
 // Configure the HTTP request pipeline.
