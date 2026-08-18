@@ -10,8 +10,20 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDataServices(builder.Configuration, builder.Environment);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
+
 
 var app = builder.Build();
+
+app.UseCors("AllowAll");
 
 // Triggers the Redis ping and EF Core migration check inside DependencyInjection.cs
 await app.Services.InitDataServicesAsync();
@@ -22,7 +34,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.MapOpenApi();
 
@@ -35,6 +47,8 @@ var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
+
+app.MapGet("/", () => "Hello World");
 
 app.MapGet("/weatherforecast", () =>
 {
