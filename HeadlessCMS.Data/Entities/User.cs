@@ -17,8 +17,4 @@ public class User : BaseEntity
     public string? ProfilePicUrl { get; set; }
     
     public bool IsActive { get; set; }
-    
-    public ICollection<Role> UserRoles { get; set; } = new List<Role>();
-    public ICollection<Post> Posts { get; set; } = new List<Post>();
-    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 }
