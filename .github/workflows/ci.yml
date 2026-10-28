@@ -21,4 +21,23 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test --no-build --configuration Release
+        run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=results.trx"
+
+      # Shows each failing test and its message at the top of the run, instead of burying it in the log.
+      - name: Report failing tests
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          for path in glob.glob("**/results.trx", recursive=True):
+              for result in ET.parse(path).getroot().iterfind(".//t:UnitTestResult", ns):
+                  if result.get("outcome") != "Failed":
+                      continue
+                  message = result.findtext(".//t:Message", default="", namespaces=ns)
+                  trace = result.findtext(".//t:StackTrace", default="", namespaces=ns)
+                  text = (message + "\n" + trace)[:1800].replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+                  print(f"::error title={result.get('testName')}::{text}")
+          PY
