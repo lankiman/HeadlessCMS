@@ -45,3 +45,11 @@ Both are off until configured:
 | `Logship__Loki__Username`, `Password`, `Token`, `OrgId` | credentials; set these as secrets, not in the repo |
 
 In Grafana, query a service's logs with `{app_name="headless-cms"}`.
+
+## Conventions
+
+- **Soft delete.** `context.Remove(entity)` never deletes a row. It sets `DeletedAt`, and every query hides such rows.
+  Add `.IgnoreQueryFilters()` to a query to see them. A new entity needs `builder.HasSoftDeleteFilter()` in its configuration (a test fails if it is missing).
+  Unique indexes ignore deleted rows, so a deleted user's email can be registered again. `ExecuteDelete` and raw SQL bypass soft delete.
+- **Timestamps.** `CreatedAt` and `UpdatedAt` are set automatically on save.
+- **Enums** are stored as strings.

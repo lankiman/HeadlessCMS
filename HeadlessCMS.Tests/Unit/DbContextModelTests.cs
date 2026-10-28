@@ -70,4 +70,31 @@ public class DbContextModelTests
 
         Assert.Contains(role.GetIndexes(), i => i.IsUnique && i.Properties.Single().Name == nameof(Role.Name));
     }
+
+    [Fact]
+    public void Every_BaseEntity_hides_soft_deleted_rows()
+    {
+        using var context = CreateContext();
+
+        var entities = context.Model.GetEntityTypes()
+            .Where(t => typeof(BaseEntity).IsAssignableFrom(t.ClrType))
+            .ToList();
+
+        Assert.NotEmpty(entities);
+        Assert.All(entities, t => Assert.True(t.GetQueryFilter() is not null, $"{t.ClrType.Name} has no soft-delete query filter."));
+    }
+
+    [Fact]
+    public void Unique_indexes_ignore_deleted_rows()
+    {
+        using var context = CreateContext();
+        var emailIndex = context.Model.FindEntityType(typeof(User))!
+            .FindNavigation(nameof(User.Email))!.TargetEntityType
+            .GetIndexes().Single(i => i.IsUnique);
+        var roleIndex = context.Model.FindEntityType(typeof(Role))!
+            .GetIndexes().Single(i => i.IsUnique);
+
+        Assert.Equal(SoftDeleteExtensions.NotDeletedSql, emailIndex.GetFilter());
+        Assert.Equal(SoftDeleteExtensions.NotDeletedSql, roleIndex.GetFilter());
+    }
 }
