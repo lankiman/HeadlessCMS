@@ -2,13 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace HeadlessCMS.Data;
 
-public static class Configuration
+public static class ServiceCollectionExtensions
 {
-
     public static IServiceCollection AddDataServices(
         this IServiceCollection services, 
         IConfiguration configuration,
@@ -64,32 +64,33 @@ public static class Configuration
     {
         using var scope = serviceProvider.CreateScope();
         var services = scope.ServiceProvider;
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("HeadlessCMS.Data.Startup");
 
         // 1. Check Redis Connection
         try
         {
             var redis = services.GetRequiredService<IConnectionMultiplexer>();
             var pingTime = await redis.GetDatabase().PingAsync();
-            Console.WriteLine($"✅ Connected to Redis! Ping: {pingTime.TotalMilliseconds}ms");
+            logger.LogInformation("Connected to Redis. Ping: {PingMs}ms", pingTime.TotalMilliseconds);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Redis Connection Failed: {ex.Message}");
+            logger.LogError(ex, "Redis connection failed.");
         }
 
         // 2. Ensure DB Exists and Apply Migrations
         try
         {
             var dbContext = services.GetRequiredService<ApplicationDbContext>();
-            
-            // Creates the DB if missing + creates all tables/migrations automatically
+
+            // Creates the DB if missing + applies all pending migrations
             await dbContext.Database.MigrateAsync();
-            
-            Console.WriteLine($"✅ PostgreSQL Database verified and up to date!");
+
+            logger.LogInformation("PostgreSQL database verified and up to date.");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ PostgreSQL Database Setup Failed: {ex.Message}");
+            logger.LogError(ex, "PostgreSQL database setup failed.");
         }
     }
 }
