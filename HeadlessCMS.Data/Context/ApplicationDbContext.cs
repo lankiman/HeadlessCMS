@@ -1,11 +1,12 @@
 using HeadlessCMS.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace HeadlessCMS.Data;
 
 public class ApplicationDbContext : DbContext
 {
+    private bool _hardDeleteRequested;
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
@@ -23,28 +24,72 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 
-    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    /// <summary>
+    /// Deletes an entity softly: the row stays and DeletedAt is set, so queries hide it.
+    /// Use this instead of Remove. (EF reacts to a row being marked as deleted by clearing related
+    /// links, such as an audit log's UserId, before we could turn it into an update. So a soft delete
+    /// must never mark the row as deleted in the first place.)
+    /// </summary>
+    public void SoftDelete(BaseEntity entity)
     {
-        ApplyEntityRules();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        ArgumentNullException.ThrowIfNull(entity);
+
+        var entry = Entry(entity);
+        if (entry.State == EntityState.Detached)
+        {
+            entry.State = EntityState.Unchanged; // start tracking it
+        }
+
+        entry.Property(e => e.DeletedAt).CurrentValue = DateTime.UtcNow;
     }
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Really deletes the row (a purge). Every real delete in the next save is allowed.
+    /// Soft-deleted rows are hidden by queries, so load them with IgnoreQueryFilters() first.
+    /// </summary>
+    public void HardDelete(BaseEntity entity)
     {
-        ApplyEntityRules();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        ArgumentNullException.ThrowIfNull(entity);
+
+        _hardDeleteRequested = true;
+        Remove(entity);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        try
+        {
+            ApplyEntityRules();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+        finally
+        {
+            _hardDeleteRequested = false;
+        }
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ApplyEntityRules();
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+        finally
+        {
+            _hardDeleteRequested = false;
+        }
     }
 
     // Rules that apply to every BaseEntity on save, so no calling code has to remember them:
     //  - CreatedAt and UpdatedAt are set.
-    //  - Remove() does not delete the row. It sets DeletedAt (a "soft delete"), and queries hide such rows.
-    //    Query with IgnoreQueryFilters() to see them. ExecuteDelete and raw SQL skip this rule.
+    //  - A plain Remove is refused, so a row is never deleted by accident. Use SoftDelete (or HardDelete).
+    // ExecuteDelete and raw SQL skip these rules.
     private void ApplyEntityRules()
     {
         var now = DateTime.UtcNow;
 
-        // ToList: changing an entry's state while enumerating the tracker is not allowed.
-        foreach (var entry in ChangeTracker.Entries<BaseEntity>().ToList())
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
             switch (entry.State)
             {
@@ -57,27 +102,11 @@ public class ApplicationDbContext : DbContext
                     entry.Property(e => e.UpdatedAt).CurrentValue = now;
                     break;
 
-                case EntityState.Deleted:
-                    SoftDelete(entry, now);
-                    break;
+                case EntityState.Deleted when !_hardDeleteRequested:
+                    throw new InvalidOperationException(
+                        $"{entry.Metadata.ClrType.Name} was removed with Remove(), which would delete the row for good. " +
+                        "Call SoftDelete(entity) to hide it, or HardDelete(entity) to really delete it.");
             }
         }
-    }
-
-    private static void SoftDelete(EntityEntry<BaseEntity> entry, DateTime now)
-    {
-        // Deleting an owner also marks its owned objects (such as Email) as deleted.
-        // Put them back, or EF would try to blank out their columns.
-        foreach (var reference in entry.References)
-        {
-            if (reference.TargetEntry is { } owned && owned.Metadata.IsOwned())
-            {
-                owned.State = EntityState.Unchanged;
-            }
-        }
-
-        entry.State = EntityState.Unchanged;
-        entry.Property(e => e.DeletedAt).CurrentValue = now;
-        entry.Property(e => e.UpdatedAt).CurrentValue = now;
     }
 }

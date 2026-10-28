@@ -48,8 +48,9 @@ In Grafana, query a service's logs with `{app_name="headless-cms"}`.
 
 ## Conventions
 
-- **Soft delete.** `context.Remove(entity)` never deletes a row. It sets `DeletedAt`, and every query hides such rows.
-  Add `.IgnoreQueryFilters()` to a query to see them. A new entity needs `builder.HasSoftDeleteFilter()` in its configuration (a test fails if it is missing).
-  Unique indexes ignore deleted rows, so a deleted user's email can be registered again. `ExecuteDelete` and raw SQL bypass soft delete.
+- **Soft delete.** Call `context.SoftDelete(entity)`. It sets `DeletedAt` and keeps the row, and every query hides such rows.
+  Add `.IgnoreQueryFilters()` to a query to see them. A plain `Remove()` throws on save, so a row is never deleted by accident.
+  `context.HardDelete(entity)` really deletes a row. A new entity needs `builder.HasSoftDeleteFilter()` in its configuration (a test fails if it is missing).
+  Unique indexes ignore deleted rows, so a deleted user's email can be registered again. `ExecuteDelete` and raw SQL bypass these rules.
 - **Timestamps.** `CreatedAt` and `UpdatedAt` are set automatically on save.
 - **Enums** are stored as strings.

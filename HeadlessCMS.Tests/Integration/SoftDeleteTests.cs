@@ -42,7 +42,7 @@ public sealed class SoftDeleteTests : IDisposable
     };
 
     [Fact]
-    public async Task Removing_an_entity_keeps_the_row_and_marks_it_deleted()
+    public async Task Soft_deleting_keeps_the_row_and_marks_it_deleted()
     {
         await using (var context = CreateContext())
         {
@@ -53,7 +53,7 @@ public sealed class SoftDeleteTests : IDisposable
         await using (var context = CreateContext())
         {
             var user = await context.Users.SingleAsync();
-            context.Users.Remove(user);
+            context.SoftDelete(user);
             await context.SaveChangesAsync();
         }
 
@@ -75,7 +75,7 @@ public sealed class SoftDeleteTests : IDisposable
         context.Users.AddRange(keep, drop);
         await context.SaveChangesAsync();
 
-        context.Users.Remove(drop);
+        context.SoftDelete(drop);
         await context.SaveChangesAsync();
 
         var visible = await context.Users.ToListAsync();
@@ -93,7 +93,7 @@ public sealed class SoftDeleteTests : IDisposable
         context.Users.Add(first);
         await context.SaveChangesAsync();
 
-        context.Users.Remove(first);
+        context.SoftDelete(first);
         await context.SaveChangesAsync();
 
         context.Users.Add(NewUser());
@@ -128,11 +128,55 @@ public sealed class SoftDeleteTests : IDisposable
         });
         await context.SaveChangesAsync();
 
-        context.Users.Remove(user);
+        context.SoftDelete(user);
         await context.SaveChangesAsync();
 
         var log = await context.AuditLogs.IgnoreQueryFilters().SingleAsync();
         Assert.Equal(user.Id, log.UserId);
+    }
+
+    [Fact]
+    public async Task A_plain_Remove_is_refused_so_rows_are_never_deleted_by_accident()
+    {
+        await using var context = CreateContext();
+        var user = NewUser();
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        context.Users.Remove(user);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => context.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task HardDelete_really_removes_the_row()
+    {
+        await using var context = CreateContext();
+        var user = NewUser();
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        context.HardDelete(user);
+        await context.SaveChangesAsync();
+
+        Assert.Equal(0, await context.Users.IgnoreQueryFilters().CountAsync());
+    }
+
+    [Fact]
+    public async Task A_soft_deleted_row_can_be_found_and_restored()
+    {
+        await using var context = CreateContext();
+        var user = NewUser();
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        context.SoftDelete(user);
+        await context.SaveChangesAsync();
+
+        var deleted = await context.Users.IgnoreQueryFilters().SingleAsync();
+        deleted.DeletedAt = null;
+        await context.SaveChangesAsync();
+
+        Assert.Single(await context.Users.ToListAsync());
     }
 
     [Fact]
