@@ -19,10 +19,11 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.HasIndex(a => a.UserId);
 
         // The user is optional (system events have none). Users are soft-deleted, never removed, so the
-        // link must never be cleared: Restrict keeps UserId untouched when a user is deleted.
+        // link must never be cleared. NoAction leaves UserId untouched when a user is deleted; EF's default
+        // for an optional link would set it to null on tracked audit logs.
         builder.HasOne(a => a.User)
             .WithMany()
             .HasForeignKey(a => a.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

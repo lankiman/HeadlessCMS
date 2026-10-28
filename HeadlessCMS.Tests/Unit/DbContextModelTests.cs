@@ -81,7 +81,7 @@ public class DbContextModelTests
             .ToList();
 
         Assert.NotEmpty(entities);
-        Assert.All(entities, t => Assert.True(t.GetQueryFilter() is not null, $"{t.ClrType.Name} has no soft-delete query filter."));
+        Assert.All(entities, t => Assert.True(t.GetDeclaredQueryFilters().Count > 0, $"{t.ClrType.Name} has no soft-delete query filter."));
     }
 
     [Fact]
