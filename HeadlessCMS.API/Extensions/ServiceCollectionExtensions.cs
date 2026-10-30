@@ -1,3 +1,6 @@
+using FluentValidation;
+using HeadlessCMS.API.Contracts.Auth;
+
 namespace HeadlessCMS.API.Extensions;
 
 public static class ServiceCollectionExtensions
@@ -22,6 +25,9 @@ public static class ServiceCollectionExtensions
                 return Task.CompletedTask;
             });
         });
+
+        // Finds every validator in this project, so a new validator needs no registration.
+        services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
         return services;
     }

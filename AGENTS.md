@@ -26,6 +26,11 @@ The tenant is a **workspace**, not a user. Every user gets a personal workspace 
 - **DTOs** are `record`s. **Entities** are classes deriving from `BaseEntity`. **Value objects** such as `Email` are records.
 - **Mapping is manual**, with extension methods in `API/Mapping/`. Never use AutoMapper or any mapping library.
   Never map a secret (password hash, token hash, 2FA secret) into a response.
+- **Entities never leave Services.** A service takes an input record and returns a result record (both defined in
+  `Services/<Feature>/`). The API maps request → input and result → response. The API must not use an entity.
+- A record that holds a secret (a password, a token) overrides `ToString()` so the secret is never printed.
+- **Reference example:** `API/Contracts/Auth/` (request, validator, response), `API/Mapping/AuthMappings.cs`,
+  `Services/Auth/` (input and result), and the tests in `Tests/Unit/Contracts/`. Copy this pattern for every new feature.
 - **Validation** uses FluentValidation: one validator per request DTO, in the same folder. Validators check the shape of a
   request. Rules that need the database belong in the service, and unique indexes are the final safeguard.
 - Each layer registers its own services in `Extensions/ServiceCollectionExtensions.cs`.
