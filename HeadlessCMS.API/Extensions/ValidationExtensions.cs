@@ -12,6 +12,6 @@ public static class ValidationExtensions
             .GroupBy(e => e.PropertyName)
             .ToDictionary(group => group.Key, group => group.Select(e => e.ErrorMessage).ToArray());
 
-        return new ValidationProblemDetails(errors);
+        return new ValidationProblemDetails(errors) { Status = StatusCodes.Status400BadRequest };
     }
 }

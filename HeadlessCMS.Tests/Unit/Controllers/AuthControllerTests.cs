@@ -50,7 +50,7 @@ public class AuthControllerTests
         var result = await CreateController(service).Register(
             new RegisterRequest("not-an-email", "short", ""), CancellationToken.None);
 
-        var problem = Assert.IsType<ObjectResult>(result.Result);
+        var problem = Assert.IsType<BadRequestObjectResult>(result.Result);
         var details = Assert.IsType<ValidationProblemDetails>(problem.Value);
         Assert.Equal(400, problem.StatusCode);
         Assert.Contains(nameof(RegisterRequest.Email), details.Errors.Keys);
