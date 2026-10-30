@@ -17,10 +17,10 @@ I write the security-critical logic myself. Do everything around it:
 1. Request and response DTO records in HeadlessCMS.API/Contracts/<Feature>/.
 2. FluentValidation validators next to them.
 3. Manual mapping extension methods in HeadlessCMS.API/Mapping/.
-4. The endpoint, calling the service interface only.
+4. The controller action in HeadlessCMS.API/Controllers/, calling the service interface only (copy AuthController).
 5. OpenAPI metadata: a summary, and every response status it can return.
 6. xunit tests: success, each validation rule, and each failure path.
-7. XML comments on public members, and an entry for the endpoint in docs/API.md.
+7. XML comments on public members, and an entry for the route in docs/API.md.
 
 Follow AGENTS.md exactly. Run dotnet build and dotnet test, and fix until both pass.
 When done, list the files you changed and anything you were unsure about.

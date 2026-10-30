@@ -26,6 +26,10 @@ public static class ServiceCollectionExtensions
             });
         });
 
+        // The fixed API (auth, workspaces, tokens) uses controllers. The generated record routes
+        // (/api/{schemaNamePlural}) will use endpoint routing instead, in the Endpoints folder.
+        services.AddControllers();
+
         // Finds every validator in this project, so a new validator needs no registration.
         services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 

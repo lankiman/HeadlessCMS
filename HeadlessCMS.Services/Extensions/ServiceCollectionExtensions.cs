@@ -1,4 +1,5 @@
 using HeadlessCMS.Data;
+using HeadlessCMS.Services.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,8 +19,8 @@ public static class ServiceCollectionExtensions
     {
         services.AddDataServices(configuration, environment);
 
-        // Register the application's services here, for example:
-        // services.AddScoped<IAuthService, AuthService>();
+        // Register the application's services here.
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

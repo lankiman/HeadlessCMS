@@ -16,7 +16,7 @@ The tenant is a **workspace**, not a user. Every user gets a personal workspace 
 
 | Project | Holds |
 |---|---|
-| API | endpoints, `Contracts/<Feature>/` (request and response DTOs and their validators), `Mapping/`, startup wiring |
+| API | `Controllers/` (the fixed API: auth, workspaces, tokens), `Endpoints/` (only the generated record routes, later), `Contracts/<Feature>/` (request and response DTOs and their validators), `Mapping/`, startup wiring |
 | Services | application logic and the interfaces the API calls |
 | Data | EF Core context, entities, `Configurations/`, value objects, Redis and MongoDB setup |
 | Common | enums, typed settings |
@@ -29,10 +29,15 @@ The tenant is a **workspace**, not a user. Every user gets a personal workspace 
 - **Entities never leave Services.** A service takes an input record and returns a result record (both defined in
   `Services/<Feature>/`). The API maps request → input and result → response. The API must not use an entity.
 - A record that holds a secret (a password, a token) overrides `ToString()` so the secret is never printed.
-- **Reference example:** `API/Contracts/Auth/` (request, validator, response), `API/Mapping/AuthMappings.cs`,
-  `Services/Auth/` (input and result), and the tests in `Tests/Unit/Contracts/`. Copy this pattern for every new feature.
+- **Reference example:** `API/Controllers/AuthController.cs`, `API/Contracts/Auth/` (request, validator, response),
+  `API/Mapping/AuthMappings.cs`, `Services/Auth/` (interface, input and result), and the tests in `Tests/Unit/`.
+  Copy this pattern for every new feature.
 - **Validation** uses FluentValidation: one validator per request DTO, in the same folder. Validators check the shape of a
   request. Rules that need the database belong in the service, and unique indexes are the final safeguard.
+- **Controllers are thin.** Use `[ApiController]`, one controller per area. Each action validates the request, maps it to the
+  service input, calls the service interface, and maps the result to a response. No business logic in a controller.
+  Give every action an XML summary and a `[ProducesResponseType]` for each status it can return.
+  The generated `/api/{schemaNamePlural}` record routes use endpoint routing in `Endpoints/`, not controllers.
 - Each layer registers its own services in `Extensions/ServiceCollectionExtensions.cs`.
 - **Nullable reference types** are on. Do not use `[Required]` for nullability.
 - **Enums are stored as strings.** Dates are UTC.

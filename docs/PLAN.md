@@ -18,6 +18,7 @@ The project is a portfolio piece, so a clear README, passing tests and one deplo
 - .NET 10 Web API. Layers: API → Services → Data → Common, enforced by tests.
 - PostgreSQL through EF Core: users, auth, schemas, platform config. MongoDB through the native driver: record data.
   Redis: short-lived auth state, and it is required. HotChocolate for GraphQL.
+- The fixed API (auth, workspaces, tokens) uses controllers. The generated record routes use endpoint routing.
 - Manual DTO mapping. FluentValidation, with validators beside their DTOs. Enums stored as strings. Nullable reference types.
 - `Email` is an owned value object. Roles come from a seeded table. Audit events are typed, with `jsonb` data.
 - Soft delete through `SoftDelete()`; unique indexes ignore deleted rows. `CreatedAt` and `UpdatedAt` are set on save.

@@ -9,7 +9,7 @@ Dependencies flow one way: `API → Services → Data → Common`.
 
 | Project | Job |
 |---|---|
-| `HeadlessCMS.API` | HTTP surface: endpoints, request/response contracts and their validators, mapping, startup wiring |
+| `HeadlessCMS.API` | HTTP surface: controllers, request/response contracts and their validators, mapping, startup wiring |
 | `HeadlessCMS.Services` | The application's logic: auth, workspaces, API tokens |
 | `HeadlessCMS.Data` | EF Core context, entities, entity configurations, value objects, PostgreSQL, Redis and MongoDB setup |
 | `HeadlessCMS.Common` | Things every layer shares: enums, typed settings |
