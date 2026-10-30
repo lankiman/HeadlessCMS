@@ -1,7 +1,8 @@
 using HeadlessCMS.API.Extensions;
 using HeadlessCMS.Services;
 
-DotNetEnv.Env.Load();
+// Finds the .env file in this folder or any folder above it, so it works from the repo root too.
+DotNetEnv.Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 

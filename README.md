@@ -11,7 +11,7 @@ Dependencies flow one way: `API → Services → Data → Common`.
 |---|---|
 | `HeadlessCMS.API` | HTTP surface: endpoints, request/response contracts and their validators, mapping, startup wiring |
 | `HeadlessCMS.Services` | The application's logic: auth, workspaces, API tokens |
-| `HeadlessCMS.Data` | EF Core context, entities, entity configurations, value objects, Redis and PostgreSQL setup |
+| `HeadlessCMS.Data` | EF Core context, entities, entity configurations, value objects, PostgreSQL, Redis and MongoDB setup |
 | `HeadlessCMS.Common` | Things every layer shares: enums, typed settings |
 | `HeadlessCMS.Tests` | Unit and integration tests |
 
@@ -19,16 +19,29 @@ Empty folders hold a `.gitkeep` file so Git keeps them. Delete it when you add t
 
 ## Running it
 
-The app needs PostgreSQL and Redis. Settings come from `appsettings.json`, environment variables, or a `.env` file (which is git-ignored):
+You need Docker for PostgreSQL, Redis and MongoDB.
 
 ```
-ConnectionStrings__DefaultConnection=Host=localhost;Database=headlesscms;Username=...;Password=...
-ConnectionStrings__Redis=localhost:6379
-```
-
-```
+cp .env.example .env            # then change the passwords
+docker compose up -d
 dotnet run --project HeadlessCMS.API
 ```
+
+Settings come from `appsettings.json`, environment variables, or the git-ignored `.env` file at the repo root:
+
+| Setting | Meaning |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | PostgreSQL connection string |
+| `ConnectionStrings__Redis` | Redis connection string (defaults to `localhost:6379`) |
+| `ConnectionStrings__Mongo` | MongoDB connection string (defaults to localhost in Development, required elsewhere) |
+| `Mongo__Database` | MongoDB database name (default `headlesscms`) |
+
+On start-up the app pings Redis and MongoDB, applies PostgreSQL migrations, and logs the result.
+
+## Documentation
+
+- [`docs/PLAN.md`](docs/PLAN.md): decisions, status and the roadmap.
+- [`AGENTS.md`](AGENTS.md) and [`docs/AGENT_PROMPTS.md`](docs/AGENT_PROMPTS.md): rules and prompts for AI coding agents.
 
 ## Logging
 

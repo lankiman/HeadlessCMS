@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using StackExchange.Redis;
 
 namespace HeadlessCMS.Data;
@@ -56,7 +58,22 @@ public static class ServiceCollectionExtensions
             options.Configuration = redisConnectionString;
             
         });
-        
+
+        // MongoDB holds the user-defined record data. MongoClient is thread-safe and meant to be shared,
+        // and it connects lazily, so registering it never blocks start-up.
+        var mongoConnectionString = configuration.GetConnectionString("Mongo")
+            ?? (environment.IsDevelopment()
+                ? "mongodb://localhost:27017"
+                : throw new InvalidOperationException("Connection string 'Mongo' not found."));
+
+        // Database name: the "Mongo:Database" setting, else the one in the connection string, else a default.
+        var mongoDatabaseName = configuration["Mongo:Database"]
+            ?? MongoUrl.Create(mongoConnectionString).DatabaseName
+            ?? "headlesscms";
+
+        services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConnectionString));
+        services.AddSingleton<IMongoDatabase>(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(mongoDatabaseName));
+
         return services;
     }
     
@@ -78,7 +95,20 @@ public static class ServiceCollectionExtensions
             logger.LogError(ex, "Redis connection failed.");
         }
 
-        // 2. Ensure DB Exists and Apply Migrations
+        // 2. Check MongoDB Connection
+        try
+        {
+            var mongo = services.GetRequiredService<IMongoDatabase>();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await mongo.RunCommandAsync((Command<BsonDocument>)"{ ping: 1 }", cancellationToken: timeout.Token);
+            logger.LogInformation("Connected to MongoDB database {Database}.", mongo.DatabaseNamespace.DatabaseName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "MongoDB connection failed.");
+        }
+
+        // 3. Ensure DB Exists and Apply Migrations
         try
         {
             var dbContext = services.GetRequiredService<ApplicationDbContext>();
