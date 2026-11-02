@@ -17,6 +17,9 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        // Settings are checked first, so a missing secret fails fast with a clear message.
+        services.AddValidatedOptions(configuration);
+
         services.AddDataServices(configuration, environment);
 
         // Register the application's services here.
